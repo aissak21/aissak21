@@ -10,107 +10,112 @@ const PORT = process.env.PORT || 5001; // Make sure this port is not already in 
 app.use(express.json()); // Parses JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parses URL-encoded bodies
 
-// Multer setup for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const folder = req.body.folder || "default";
-    const uploadPath = path.join(__dirname, "public/kaleidoscope", folder);
-    console.log("Uploading to folder:", req.body);  // Check folder path
-    try {
-      if (!fs.existsSync(uploadPath)) {
-        fs.mkdirSync(uploadPath, { recursive: true });
-      }
-    } catch (error) {
-      console.error("Error creating directory:", error);
-      return cb(error, null);
-    }
-
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
-  },
+// AWS S3 Configuration
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION,
 });
 
-const upload = multer({ storage: storage });
+// Multer S3 Storage Setup
+const upload = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: process.env.S3_BUCKET_NAME, // Your S3 bucket name
+    acl: "public-read", // Allow public access to uploaded images
+    contentType: multerS3.AUTO_CONTENT_TYPE, // Set correct MIME type
+    key: function (req, file, cb) {
+      const folder = req.body.folder || "default";
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const fileName = `${folder}/${uniqueSuffix}${path.extname(file.originalname)}`;
+      cb(null, fileName);
+    },
+  }),
+});
 
 // API to get images
-app.get("/api/images", (req, res) => {
-  const baseDir = path.join(__dirname, "public/kaleidoscope");
-  const images = [];
+// Function to Fetch Image and Text Files from S3
+const getS3Files = async () => {
+  try {
+    const params = { Bucket: S3_BUCKET, Prefix: BASE_FOLDER };
+    const data = await s3.listObjectsV2(params).promise();
 
-  fs.readdirSync(baseDir).forEach((folder) => {
-    if (folder === '.DS_Store') return;
-    const folderPath = path.join(baseDir, folder);
-    if (fs.statSync(folderPath).isDirectory()) {
+    const images = [];
+    const textFiles = {};
 
-      // Default values
-      let definiton = "No description available!";
-      let practice = "No prompt available!";
-      let description = "no description available!";
+    // Organize Files by Folder
+    for (const item of data.Contents) {
+      const key = item.Key;
+      const folder = key.split("/")[1];
 
-      // Check for definintino.txt
-      const definitionPath = path.join(folderPath, "definition.txt");
-      if (fs.existsSync(definitionPath)) {
-        try {
-          definiton = fs.readFileSync(definitionPath, "utf-8").trim() || definiton;
-        } catch (err) {
-          console.error(`Error reading description.txt in ${folder}:`, err);
-        }
+      if (key.endsWith(".jpg") || key.endsWith(".png")) {
+        images.push({ path: key, folder });
+      } else if (key.endsWith(".txt")) {
+        if (!textFiles[folder]) textFiles[folder] = {};
+        textFiles[folder][path.basename(key, ".txt")] = key;
       }
-
-      // Check for practice.txt
-      const practicePath = path.join(folderPath, "practice.txt");
-      if (fs.existsSync(practicePath)) {
-        try {
-          practice = fs.readFileSync(practicePath, "utf-8").trim() || practice;
-        } catch (err) {
-          console.error(`Error reading prompt.txt in ${folder}:`, err);
-        }
-      }
-
-      // Check for description.txt
-      const descriptionPath = path.join(folderPath, "description.txt");
-      if (fs.existsSync(descriptionPath)) {
-        try {
-          description = fs.readFileSync(descriptionPath, "utf-8").trim() || description;
-        } catch (err) {
-          console.error(`Error reading description.txt in ${folder}:`, err);
-        }
-      }
-
-      fs.readdirSync(folderPath).forEach((file) => {
-        const fileExt = path.extname(file).toLowerCase();
-        if (fileExt === ".jpg" || fileExt === ".png") {
-          images.push({ path: `kaleidoscope/${folder}/${file}`, folder, definiton, practice, description});
-        }
-      });
     }
-    else
-    {
-        return res.status(400).json({ error: "No file present or found", path: baseDir,
-        folders: folderPath
-         });
-    }
-  });
 
+    // Fetch Text File Contents from S3
+    for (const folder in textFiles) {
+      for (const type in textFiles[folder]) {
+        const textKey = textFiles[folder][type];
+        const textData = await s3.getObject({ Bucket: S3_BUCKET, Key: textKey }).promise();
+        textFiles[folder][type] = textData.Body.toString("utf-8").trim();
+      }
+    }
+
+    // Attach Metadata to Images
+    return images.map((img) => ({
+      path: `https://${S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${img.path}`,
+      folder: img.folder,
+      definition: textFiles[img.folder]?.definition || "No definition available",
+      practice: textFiles[img.folder]?.practice || "No practice available",
+      description: textFiles[img.folder]?.description || "No description available",
+    }));
+  } catch (error) {
+    console.error("Error fetching S3 files:", error);
+    return [];
+  }
+};
+
+// API to Get Images and Descriptions from S3
+app.get("/api/images", async (req, res) => {
+  const images = await getS3Files();
   res.setHeader("Content-Type", "application/json");
   res.json(images);
 });
 
+// API to get images (Fetching image paths from S3)
+app.get("/api/images", async (req, res) => {
+  try {
+    const params = { Bucket: process.env.S3_BUCKET_NAME };
+    const s3Data = await s3.listObjectsV2(params).promise();
+    
+    const images = s3Data.Contents.map((item) => ({
+      path: `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${item.Key}`,
+      folder: path.dirname(item.Key),
+    }));
+
+    res.setHeader("Content-Type", "application/json");
+    res.json(images);
+  } catch (error) {
+    console.error("Error fetching images:", error);
+    res.status(500).json({ error: "Failed to fetch images" });
+  }
+});
+
 // API to upload an image
 app.post("/api/upload", upload.single("image"), (req, res) => {
-  console.log("Folder received:", req.body.folder); // Debugging log
-  console.log("Uploaded File:", req.file);
-
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
 
+  const fileUrl = req.file.location; // S3 URL of the uploaded file
+
   res.json({
     success: true,
-    path: `/kaleidoscope/${req.body.folder}/${req.file.filename}`,
+    path: fileUrl,
     folder: req.body.folder,
   });
 });
