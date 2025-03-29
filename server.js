@@ -2,9 +2,12 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const multerS3 = require("multer-s3");
+const AWS = require("aws-sdk");
+require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 5001; // Make sure this port is not already in use.
+const PORT = process.env.PORT || 5001; // Make sure this port is not already in use
 
 //middleware
 app.use(express.json()); // Parses JSON bodies
@@ -17,21 +20,12 @@ const s3 = new AWS.S3({
   region: process.env.AWS_REGION,
 });
 
-// Multer S3 Storage Setup
-const upload = multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: process.env.S3_BUCKET_NAME, // Your S3 bucket name
-    acl: "public-read", // Allow public access to uploaded images
-    contentType: multerS3.AUTO_CONTENT_TYPE, // Set correct MIME type
-    key: function (req, file, cb) {
-      const folder = req.body.folder || "default";
-      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-      const fileName = `${folder}/${uniqueSuffix}${path.extname(file.originalname)}`;
-      cb(null, fileName);
-    },
-  }),
-});
+const S3_BUCKET = process.env.S3_BUCKET_NAME;
+const BASE_FOLDER = "kaleidoscope/";
+
+// Multer Storage (for Memory Upload before Sending to S3)
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // API to get images
 // Function to Fetch Image and Text Files from S3
@@ -105,19 +99,37 @@ app.get("/api/images", async (req, res) => {
   }
 });
 
-// API to upload an image
-app.post("/api/upload", upload.single("image"), (req, res) => {
+// API to upload an image to s3
+app.post("/api/upload", upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
 
-  const fileUrl = req.file.location; // S3 URL of the uploaded file
+  const folder = req.body.folder || "default";
+  const fileName = req.file.originalname;
+  const s3Key = `kaleidoscope/${folder}/${fileName}`;
 
-  res.json({
-    success: true,
-    path: fileUrl,
-    folder: req.body.folder,
-  });
+  const params = {
+    Bucket: S3_BUCKET,
+    Key: s3Key,
+    Body: req.file.buffer,
+    ContentType: req.file.mimetype,
+    ACL: "public-read" // Ensures the file is publicly accessible
+  };
+
+  try {
+    const uploadResult = await s3.upload(params).promise();
+    console.log("Upload Success:", uploadResult.Location);
+
+    res.json({
+      success: true,
+      path: uploadResult.Location, // S3 URL of the uploaded image
+      folder: folder
+    });
+  } catch (error) {
+    console.error("Error uploading to S3:", error);
+    res.status(500).json({ error: "Upload failed", details: error.message });
+  }
 });
 
 // Serve the React frontend after building it
