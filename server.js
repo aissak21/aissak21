@@ -109,7 +109,7 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
   const folder = req.body.folder || "default";
   const fileName = req.file.originalname;
   const parts = fileName.split('.');
-  const name = req.body.name + "." + parts.pop()
+  const name = `${Date.now()}-${req.body.name}` + "." + parts.pop()
   const s3Key = `kaleidoscope/${folder}/${name}`;
 
   const params = {
