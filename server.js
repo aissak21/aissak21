@@ -105,9 +105,12 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
     return res.status(400).json({ error: "No file uploaded" });
   }
 
+  console.log("file name is ", req.body)
   const folder = req.body.folder || "default";
   const fileName = req.file.originalname;
-  const s3Key = `kaleidoscope/${folder}/${fileName}`;
+  const parts = fileName.split('.');
+  const name = req.body.name + "." + parts.pop()
+  const s3Key = `kaleidoscope/${folder}/${name}`;
 
   const params = {
     Bucket: S3_BUCKET,

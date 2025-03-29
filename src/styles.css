@@ -20,6 +20,40 @@
     transform: scale(1.05);
   }
 
+/* CSS for Tooltip */
+.image-container {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip {
+  position: absolute;
+  top: -25px;  /* Positioning above the image */
+  left: 50%;   /* Center it horizontally */
+  transform: translateX(-50%);  /* Align exactly at the center */
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out; /* Smooth transition */
+  pointer-events: none; /* Ensure the tooltip does not interfere with clicking */
+}
+
+.image-container:hover .tooltip {
+  opacity: 1;
+}
+
+/* Styling for image container */
+.image-container img {
+  display: block;
+  width: 100%; /* Ensure the image fits within the container */
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+  
+
 /* Overlay effect */
 .dialog-overlay {
   position: fixed;
@@ -166,6 +200,15 @@
   cursor: pointer;
   transition: background 0.3s ease;
 }
+
+/* Styling for the disabled button */
+.upload-form button:disabled {
+  background-color: #d3d3d3; /* Light grey background when disabled */
+  color: #a0a0a0; /* Dark grey text color */
+  cursor: not-allowed; /* Change the cursor to indicate it's not clickable */
+  opacity: 0.6; /* Make the button slightly transparent */
+}
+
 
 .upload-form button:hover {
   background: #0056b3;

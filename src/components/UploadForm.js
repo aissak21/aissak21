@@ -4,13 +4,14 @@ export default function UploadFolder( {folder} ) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [modelName, setModelName] = useState(""); // State to store model name
 
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
 
   const handleUpload = async () => {
-    if (!file || !folder) {
+    if (!file || !folder || !modelName) {
       setMessage("Please select a file and enter a folder name.");
       return;
     }
@@ -18,6 +19,7 @@ export default function UploadFolder( {folder} ) {
     const formData = new FormData();
     formData.append("folder", folder);
     formData.append("image", file);
+    formData.append("name", modelName)
 
     // Debug: Check if formData contains correct values
     for (let [key, value] of formData.entries()) {
@@ -60,10 +62,19 @@ export default function UploadFolder( {folder} ) {
         onChange={handleFileChange}
         className="border p-2 w-full mb-2"
       />
+
+      {/* Input field for model name */}
+      <input
+        type="text"
+        placeholder="Enter the name of the model"
+        value={modelName}
+        onChange={(e) => setModelName(e.target.value)}
+        required
+      />
+
       <button
         onClick={handleUpload}
-        disabled={uploading}
-        className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+        disabled={uploading || !modelName.trim()}
       >
         {uploading ? "Uploading..." : "Upload"}
       </button>

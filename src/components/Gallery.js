@@ -41,9 +41,14 @@ export default function Gallery() {
     </div>
     <div className="gallery-container">
       {images.map((img) => (
-        <img key={img.path} src={img.path} alt="Gallery"           
-        className="cursor-pointer rounded-lg shadow-md"
-        onClick={() => handleImageClick(img)}/>
+        <div key={img.path} className="image-container">
+          {/* Tooltip */}
+          <div className="tooltip">{img.folder}</div>
+          <img key={img.path} src={img.path} alt="Gallery"           
+          className="cursor-pointer rounded-lg shadow-md"
+          title={img.folder} 
+          onClick={() => handleImageClick(img)}/>
+        </div>
       ))}
       {selectedImage && <ImagePopup image={selectedImage} onClose={() => setSelectedImage(null)} />}
     </div>
