@@ -4,21 +4,15 @@ const path = require("path");
 const fs = require("fs");
 
 const app = express();
-// Serve the React frontend after building it
-app.use(express.static(path.join(__dirname, "build")));
-
-app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname + "/build/index.html")); // Load React App
-});
 const PORT = process.env.PORT || 5001; // Make sure this port is not already in use.
-const API_BASE = process.env.API_BASE
 
 //middleware
 app.use(express.json()); // Parses JSON bodies
-app.use(express.urlencoded({ extended: true })); // Parses URL-encoded bodies
-const cors = require('cors');
-const { Console } = require("console");
-app.use(cors()); // Enable CORS for all routes
+app.use(function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 
 // Multer setup for file uploads
 const storage = multer.diskStorage({
@@ -104,8 +98,10 @@ app.get("/api/images", (req, res) => {
          });
     }
   });
-
+  
+  res.setHeader("Content-Type", "application/json");
   res.json(images);
+  console.log("json on server",res)
 });
 
 // API to upload an image
@@ -122,6 +118,13 @@ app.post("/api/upload", upload.single("image"), (req, res) => {
     path: `/kaleidoscope/${req.body.folder}/${req.file.filename}`,
     folder: req.body.folder,
   });
+});
+
+// Serve the React frontend after building it
+app.use(express.static(path.join(__dirname, "build")));
+
+app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname + "/build/index.html")); // Load React App
 });
 
 app.listen(PORT, () => {

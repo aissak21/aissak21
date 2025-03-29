@@ -11,6 +11,7 @@ export default function Gallery() {
     fetch("/api/images")
       .then((res) => {
         console.log("API Response Status:", res.status);
+        console.log("Response Headers:", res.headers.get("content-type"));
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
