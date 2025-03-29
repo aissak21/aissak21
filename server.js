@@ -8,11 +8,7 @@ const PORT = process.env.PORT || 5001; // Make sure this port is not already in 
 
 //middleware
 app.use(express.json()); // Parses JSON bodies
-app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
+app.use(express.urlencoded({ extended: true })); // Parses URL-encoded bodies
 
 // Multer setup for file uploads
 const storage = multer.diskStorage({
@@ -98,10 +94,9 @@ app.get("/api/images", (req, res) => {
          });
     }
   });
-  
+
   res.setHeader("Content-Type", "application/json");
   res.json(images);
-  console.log("json on server",res)
 });
 
 // API to upload an image
