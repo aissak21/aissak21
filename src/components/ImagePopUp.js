@@ -68,7 +68,7 @@ export default function ImagePopup({ image, onClose }) {
           {/* Prompts Section */}
           <div className="prompt">
             <h3>Definition Prompt</h3>
-            <p>{image.definiton}</p>
+            <p>{image.definition}</p>
             <h3>Practice Prompt</h3>
             <p>{image.practice}</p>
           </div>
