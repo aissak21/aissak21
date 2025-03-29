@@ -7,7 +7,7 @@ export default function Gallery() {
   const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:5001/api/images")
+    fetch("/api/images")
       .then((res) => {
         console.log("API Response Status:", res.status);
         if (!res.ok) {
