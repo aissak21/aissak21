@@ -11,6 +11,7 @@ app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname + "/build/index.html")); // Load React App
 });
 const PORT = process.env.PORT || 5001; // Make sure this port is not already in use.
+const API_BASE = process.env.API_BASE
 
 //middleware
 app.use(express.json()); // Parses JSON bodies

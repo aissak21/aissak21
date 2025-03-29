@@ -5,9 +5,10 @@ import ImagePopup from "./ImagePopUp";
 export default function Gallery() {
   const [images, setImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
+  const API_BASE = process.env.API_BASE
 
   useEffect(() => {
-    fetch("/api/images")
+    fetch('${API_BASE}/api/images')
       .then((res) => {
         console.log("API Response Status:", res.status);
         if (!res.ok) {
