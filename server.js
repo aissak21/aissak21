@@ -46,7 +46,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // API to get images
-app.get("https://kaleidoscope-gallery-9c1ebe1be110.herokuapp.com/api/images", (req, res) => {
+app.get("/api/images", (req, res) => {
   const baseDir = path.join(__dirname, "public/kaleidoscope");
   const images = [];
 

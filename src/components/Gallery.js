@@ -8,7 +8,7 @@ export default function Gallery() {
   const API_BASE = process.env.API_BASE
 
   useEffect(() => {
-    fetch('https://kaleidoscope-gallery-9c1ebe1be110.herokuapp.com/api/images')
+    fetch("/api/images")
       .then((res) => {
         console.log("API Response Status:", res.status);
         if (!res.ok) {

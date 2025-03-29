@@ -21,7 +21,7 @@ export default function ImagePopup({ image, onClose }) {
 
   useEffect(() => {
     if (!image) return;
-    fetch("http://localhost:5001/api/images")
+    fetch("/api/images")
       .then((res) => res.json())
       .then((data) => {
         const filteredImages = data.filter((img) => img.folder === image.folder);
