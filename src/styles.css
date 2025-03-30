@@ -31,6 +31,7 @@
   top: -25px;  /* Positioning above the image */
   left: 50%;   /* Center it horizontally */
   transform: translateX(-50%);  /* Align exactly at the center */
+  white-space: nowrap;
   background-color: rgba(0, 0, 0, 0.7);
   color: #fff;
   padding: 5px 10px;
